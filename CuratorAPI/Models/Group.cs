@@ -1,15 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace CuratorApp.Models
+namespace CuratorAPI.Models
 {
     public class Group
     {
+        [Key]
         public int Id { get; set; }
-        public string? Name { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Name { get; set; } = null!;
+
+        [Required]
+        public int CourseNumber { get; set; }
+
+        [MaxLength(100)]
         public string? Specialization { get; set; }
+
+        public ICollection<Student> Students { get; set; } = new List<Student>();
+
+        public ICollection<GeneratedReport> GeneratedReports { get; set; } = new List<GeneratedReport>();
     }
 }

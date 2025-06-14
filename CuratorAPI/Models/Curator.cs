@@ -1,22 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace CuratorApp.Models
+namespace CuratorAPI.Models
 {
     public class Curator
     {
-        
+        [Key]
         public int Id { get; set; }
-        public string? Login { get; set; }
-        public string? Password { get; set; }
-        public string? Name { get; set; }
-        public string? LastName { get; set; }
-        public string? Number { get; set; }
-        public Group? Group { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Username { get; set; } = null!;
+
+        [Required]
+        public string Password { get; set; } = null!;
+
+        [Required]
+        [MaxLength(100)]
+        public string FirstName { get; set; } = null!;
+
+        [Required]
+        [MaxLength(100)]
+        public string LastName { get; set; } = null!;
+
+        [EmailAddress]
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [Phone]
+        [MaxLength(20)]
+        public string? Phone { get; set; }
+
+        [Required]
+        public int GroupId { get; set; }
+
+        public Group Group { get; set; } = null!;
     }
 }

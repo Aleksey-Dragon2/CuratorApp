@@ -1,20 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace CuratorApp.Models
+namespace CuratorAPI.Models
 {
     public class Student
     {
+        [Key]
         public int Id { get; set; }
-        public string? Name { get; set; }
-        public string? LastName { get; set; }
-        public string? Number { get; set; }
-        public DateOnly Birthday { get; set; }
-        public string? address { get; set; }
-        public Group? Group { get; set; }
 
+        [Required]
+        [MaxLength(100)]
+        public string FirstName { get; set; } = null!;
+
+        [Required]
+        [MaxLength(100)]
+        public string LastName { get; set; } = null!;
+
+        [MaxLength(100)]
+        public string? MiddleName { get; set; }
+
+        [EmailAddress]
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [Phone]
+        [MaxLength(20)]
+        public string? Phone { get; set; }
+
+        [Required]
+        public DateOnly Birthday { get; set; }
+
+        [Required]
+        public string Address { get; set; }
+
+        [Required]
+        public int GroupId { get; set; }
+
+        public Group Group { get; set; } = null!;
+
+        [Required]
+        public int EnrollmentYear { get; set; }
+
+        public ICollection<AnnualRecord> AnnualRecords { get; set; } = new List<AnnualRecord>();
     }
 }
