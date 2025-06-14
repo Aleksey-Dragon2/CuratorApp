@@ -30,7 +30,7 @@ namespace CuratorAPI.Models
         public DateOnly Birthday { get; set; }
 
         [Required]
-        public string Address { get; set; }
+        public string Address { get; set; } = null!;
 
         [Required]
         public int GroupId { get; set; }
