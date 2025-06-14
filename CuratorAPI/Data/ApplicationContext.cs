@@ -5,13 +5,14 @@ namespace CuratorApp.Data
 {
     public class ApplicationContext : DbContext
     {
-        DbSet<Curator> Curators { get; set; } = null!;
-        DbSet<Group> Groups { get; set; } = null!;
-        DbSet<Student> Students { get; set; } = null!;
-        DbSet<Subject> Subjects { get; set; } = null!;
-        DbSet<AnnualRecord> AnnualRecords { get; set; } = null!;
-        DbSet<DocumentTemplate> DocumentTemplates { get; set; } = null!;
-        DbSet<GeneratedReport> GeneratedReports { get; set; } = null!;
+        public DbSet<Curator> Curators { get; set; } = null!;
+        public DbSet<Group> Groups { get; set; } = null!;
+        public DbSet<Student> Students { get; set; } = null!;
+        public DbSet<Subject> Subjects { get; set; } = null!;
+        public DbSet<AnnualRecord> AnnualRecords { get; set; } = null!;
+        public DbSet<DocumentTemplate> DocumentTemplates { get; set; } = null!;
+        public DbSet<GeneratedReport> GeneratedReports { get; set; } = null!;
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         public ApplicationContext() { }
 
         public ApplicationContext(DbContextOptionsBuilder optionsBuilder)
@@ -42,6 +43,11 @@ namespace CuratorApp.Data
             modelBuilder.Entity<Curator>()
                 .HasIndex(c => c.GroupId)
                 .IsUnique();
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.Curator)
+                .WithMany(c => c.RefreshTokens)
+                .HasForeignKey(rt => rt.CuratorId);
         }
     }
 }
