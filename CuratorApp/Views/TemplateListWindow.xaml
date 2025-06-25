@@ -1,0 +1,19 @@
+﻿<Window x:Class="CuratorApp.Views.TemplateListWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Шаблоны документов" Height="400" Width="600" WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="10">
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Button Content="Создать" Width="100" Margin="0,0,10,0" Command="{Binding CreateCommand}" />
+            <Button Content="Редактировать" Width="100" Margin="0,0,10,0" Command="{Binding EditCommand}" />
+            <Button Content="Удалить" Width="100" Command="{Binding DeleteCommand}" />
+        </StackPanel>
+
+        <DataGrid ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Путь" Binding="{Binding TemplatePath}" Width="2*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

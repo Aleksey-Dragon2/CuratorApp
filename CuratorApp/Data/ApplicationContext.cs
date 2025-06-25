@@ -13,6 +13,8 @@ namespace CuratorApp.Data
         public DbSet<AnnualRecord> AnnualRecords { get; set; } = null!;
         public DbSet<DocumentTemplate> DocumentTemplates { get; set; } = null!;
         public DbSet<GeneratedReport> GeneratedReports { get; set; } = null!;
+        public DbSet<TemplateKeyword> TemplateKeywords { get; set; }
+
         public ApplicationContext() { }
 
         public ApplicationContext(DbContextOptionsBuilder optionsBuilder)

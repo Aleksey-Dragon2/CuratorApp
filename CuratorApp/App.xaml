@@ -1,8 +1,7 @@
 ﻿<Application x:Class="CuratorApp.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:CuratorApp"
-             StartupUri="Views/LoginWindow.xaml">
+             xmlns:local="clr-namespace:CuratorApp">
     <Application.Resources>
          
     </Application.Resources>

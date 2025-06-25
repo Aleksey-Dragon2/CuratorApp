@@ -2,6 +2,7 @@
 
 namespace CuratorApp.Models
 {
+
     public class DocumentTemplate
     {
         [Key]
@@ -14,6 +15,9 @@ namespace CuratorApp.Models
         [Required]
         [MaxLength(200)]
         public string TemplatePath { get; set; } = null!;
+        public TemplateType TemplateType { get; set; }
+        public ICollection<TemplateKeyword> Keywords { get; set; } = new List<TemplateKeyword>();
+
     }
 
 }

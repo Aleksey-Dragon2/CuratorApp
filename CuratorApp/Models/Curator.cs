@@ -22,10 +22,6 @@ namespace CuratorApp.Models
         [MaxLength(100)]
         public string LastName { get; set; } = null!;
 
-        [EmailAddress]
-        [MaxLength(100)]
-        public string? Email { get; set; }
-
         [Phone]
         [MaxLength(20)]
         public string? Phone { get; set; }

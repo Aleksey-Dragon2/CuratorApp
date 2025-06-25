@@ -24,8 +24,5 @@ namespace CuratorApp.Models
 
         [Required]
         public int AbsenceCount { get; set; }
-
-        [MaxLength(500)]
-        public string? Comment { get; set; }
     }
 }

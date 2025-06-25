@@ -1,0 +1,74 @@
+﻿<Window x:Class="CuratorApp.Views.PerformanceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Успеваемость группы" Height="600" Width="900" WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Статистика -->
+            <RowDefinition Height="Auto"/>
+            <!-- Шаблон -->
+            <RowDefinition Height="Auto"/>
+            <!-- Кнопки -->
+            <RowDefinition Height="2*"/>
+            <!-- Таблица -->
+            <RowDefinition Height="*"/>
+            <!-- Предметы -->
+        </Grid.RowDefinitions>
+
+        <!-- Общая статистика -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Средний балл по группе: " FontWeight="Bold"/>
+            <TextBlock Text="{Binding AverageGrade}" Margin="10,0,0,0"/>
+            <TextBlock Text="Общее количество пропусков: " FontWeight="Bold" Margin="30,0,0,0"/>
+            <TextBlock Text="{Binding TotalAbsences}" Margin="10,0,0,0"/>
+        </StackPanel>
+
+        <!-- Выбор шаблона и генерация -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Групповой шаблон:" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding GroupTemplates}" SelectedItem="{Binding SelectedGroupTemplate}"
+                      DisplayMemberPath="Name" Width="200" Margin="10,0"/>
+            <Button Content="Создать отчёт" Command="{Binding GenerateGroupReportCommand}" Margin="10,0"/>
+        </StackPanel>
+
+        <!-- Кнопки управления -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="Добавить" Width="100" Margin="0,0,10,0" Command="{Binding AddRecordCommand}" />
+            <Button Content="Редактировать" Width="100" Margin="0,0,10,0" Command="{Binding EditRecordCommand}" />
+            <Button Content="Удалить" Width="100" Command="{Binding DeleteRecordCommand}" />
+        </StackPanel>
+
+        <!-- Таблица -->
+        <DataGrid Grid.Row="3"
+                  ItemsSource="{Binding Records}"
+                  AutoGenerateColumns="False"
+                  SelectedItem="{Binding SelectedRecord}"
+                  IsReadOnly="True"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ФИО" Binding="{Binding Student.LastName}" Width="2*"/>
+                <DataGridTextColumn Header="Предмет" Binding="{Binding Subject.Name}" Width="2*"/>
+                <DataGridTextColumn Header="Курс" Binding="{Binding CourseNumber}" Width="*"/>
+                <DataGridTextColumn Header="Оценка" Binding="{Binding FinalGrade}" Width="*"/>
+                <DataGridTextColumn Header="Пропуски" Binding="{Binding AbsenceCount}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Средние баллы по предметам -->
+        <GroupBox Header="Средний балл по предметам" Grid.Row="4" Margin="0,10,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding SubjectAverages}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <TextBlock Text="{Binding SubjectName}" FontWeight="Bold" Width="200"/>
+                                <TextBlock Text="{Binding AverageGrade}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</Window>

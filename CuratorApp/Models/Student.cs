@@ -18,10 +18,6 @@ namespace CuratorApp.Models
         [MaxLength(100)]
         public string? MiddleName { get; set; }
 
-        [EmailAddress]
-        [MaxLength(100)]
-        public string? Email { get; set; }
-
         [Phone]
         [MaxLength(20)]
         public string? Phone { get; set; }
@@ -41,5 +37,8 @@ namespace CuratorApp.Models
         public int EnrollmentYear { get; set; }
 
         public ICollection<AnnualRecord> AnnualRecords { get; set; } = new List<AnnualRecord>();
+        
+        public string FullName => $"{LastName} {FirstName} {MiddleName}".Trim();
+
     }
 }
