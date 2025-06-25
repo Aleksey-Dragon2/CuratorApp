@@ -35,9 +35,9 @@ namespace CuratorApp
 
             if (result != null)
             {
-                MainWindow mainWindow = new(_curatorRepository, _groupRepository, result);
+                MainWindow mainWindow = new(_curatorRepository, _groupRepository, result, this);
                 mainWindow.Show();
-                this.Close();
+                this.Hide();
             }
             else
             {
@@ -50,7 +50,6 @@ namespace CuratorApp
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             string username = RegisterUsernameTextBox.Text.Trim();
-            string email = RegisterEmailTextBox.Text.Trim();
             string password = RegisterPasswordBox.Password;
             string confirmPassword = RegisterConfirmPasswordBox.Password;
 

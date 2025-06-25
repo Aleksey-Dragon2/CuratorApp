@@ -121,8 +121,22 @@ namespace CuratorApp.ViewModels
         {
             var studentRepo = new StudentRepository(new ApplicationContext());
             var vm = new StudentListViewModel(studentRepo, _groupRepository, _curator.GroupId);
-            var window = new StudentsWindow(vm);
-            window.ShowDialog();
+
+            var mainWindow = Application.Current.Windows
+                .OfType<MainWindow>()
+                .FirstOrDefault(w => w.DataContext == this);
+
+            mainWindow?.Hide();
+
+            var studentsWindow = new StudentsWindow(vm);
+
+            studentsWindow.Closed += (s, e) =>
+            {
+                mainWindow?.Show();
+                studentsWindow.Closed -= (s, e) => mainWindow?.Show();
+            };
+
+            studentsWindow.ShowDialog();
         }
 
 
@@ -132,9 +146,22 @@ namespace CuratorApp.ViewModels
             var annualRepo = new AnnualRecordRepository(new ApplicationContext());
             var documentRepo = new DocumentTemplateRepository(new ApplicationContext());
             var groupRepo = new GroupRepository(new ApplicationContext());
-            var vm = new PerformanceViewModel(annualRepo, documentRepo, groupRepo, _curator.GroupId);
-            var window = new PerformanceWindow(vm);
-            window.ShowDialog();
+            var subjectRepo = new SubjectRepository(new ApplicationContext());
+            var vm = new PerformanceViewModel(annualRepo, documentRepo, groupRepo, subjectRepo, _curator.GroupId);
+
+
+            var mainWindow = Application.Current.Windows
+                .OfType<MainWindow>()
+                .FirstOrDefault(w => w.DataContext == this);
+
+            mainWindow?.Hide();
+            var performanceWindow = new PerformanceWindow(vm);
+            performanceWindow.Closed += (s, e) =>
+            {
+                mainWindow?.Show();
+                performanceWindow.Closed -= (s, e) => mainWindow?.Show();
+            };
+            performanceWindow.ShowDialog();
         }
 
 
@@ -142,8 +169,22 @@ namespace CuratorApp.ViewModels
         {
             var repo = new DocumentTemplateRepository(new ApplicationContext());
             var vm = new TemplateListViewModel(repo);
-            var window = new TemplateListWindow(vm);
-            window.ShowDialog();
+
+            var mainWindow = Application.Current.Windows
+                .OfType<MainWindow>()
+                .FirstOrDefault(w => w.DataContext == this);
+
+            mainWindow?.Hide();
+
+            var templatesWindow = new TemplateListWindow(vm);
+
+            templatesWindow.Closed += (s, e) =>
+            {
+                mainWindow?.Show();
+                templatesWindow.Closed -= (s, e) => mainWindow?.Show();
+            };
+
+            templatesWindow.ShowDialog();
         }
 
 

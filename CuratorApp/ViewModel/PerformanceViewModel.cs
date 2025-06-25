@@ -23,26 +23,43 @@ namespace CuratorApp.ViewModel
         private readonly IAnnualRecordRepository _repo;
         private readonly IDocumentTemplateRepository _templateRepo;
         private readonly IGroupRepository _groupRepo;
+        private readonly ISubjectRepository _subjectRepo;
         private readonly int _groupId;
 
-        public ObservableCollection<AnnualRecord> Records { get; set; } = new();
-        public ObservableCollection<SubjectPerformance> SubjectAverages { get; set; } = new();
+        public ObservableCollection<AnnualRecord> Records { get; } = new();
+        public ObservableCollection<AnnualRecord> FilteredRecords { get; } = new();
+        public ObservableCollection<SubjectPerformance> SubjectAverages { get; } = new();
+        public ObservableCollection<Subject> AvailableSubjects { get; } = new();
+        public ObservableCollection<DocumentTemplate> GroupTemplates { get; } = new();
 
-        public ObservableCollection<DocumentTemplate> GroupTemplates { get; set; } = new();
-        public DocumentTemplate? SelectedGroupTemplate { get; set; }
-
-        public double AverageGrade => Records.Where(r => r.FinalGrade != null).Average(r => r.FinalGrade) switch
+        private Subject? _selectedSubjectFilter;
+        public Subject? SelectedSubjectFilter
         {
-            double avg => Math.Round(avg, 2),
-            _ => 0
-        };
+            get => _selectedSubjectFilter;
+            set
+            {
+                _selectedSubjectFilter = value;
+                OnPropertyChanged(nameof(SelectedSubjectFilter));
+                ApplyFilter();
+            }
+        }
+
+        private DocumentTemplate? _selectedGroupTemplate;
+        public DocumentTemplate? SelectedGroupTemplate
+        {
+            get => _selectedGroupTemplate;
+            set
+            {
+                _selectedGroupTemplate = value;
+                OnPropertyChanged(nameof(SelectedGroupTemplate));
+            }
+        }
+
+        public double AverageGrade => Records.Any(r => r.FinalGrade != null)
+            ? Math.Round(Records.Where(r => r.FinalGrade != null).Average(r => r.FinalGrade ?? 0), 2)
+            : 0;
 
         public int TotalAbsences => Records.Sum(r => r.AbsenceCount);
-
-        public ICommand GenerateGroupReportCommand { get; }
-        public ICommand AddRecordCommand { get; }
-        public ICommand EditRecordCommand { get; }
-        public ICommand DeleteRecordCommand { get; }
 
         private AnnualRecord? _selectedRecord;
         public AnnualRecord? SelectedRecord
@@ -55,34 +72,75 @@ namespace CuratorApp.ViewModel
             }
         }
 
+        public ICommand GenerateGroupReportCommand { get; }
+        public ICommand AddRecordCommand { get; }
+        public ICommand EditRecordCommand { get; }
+        public ICommand DeleteRecordCommand { get; }
+
         public PerformanceViewModel(
             IAnnualRecordRepository repo,
             IDocumentTemplateRepository templateRepo,
             IGroupRepository groupRepo,
+            ISubjectRepository subjectRepo,
             int groupId)
         {
             _repo = repo;
             _templateRepo = templateRepo;
             _groupRepo = groupRepo;
+            _subjectRepo = subjectRepo;
             _groupId = groupId;
 
-            GenerateGroupReportCommand = new RelayCommand(async _ => await GenerateGroupReportAsync(), _ => SelectedGroupTemplate != null);
+            GenerateGroupReportCommand = new RelayCommand(
+                async _ => await GenerateGroupReportAsync(),
+                _ => SelectedGroupTemplate != null);
+
             AddRecordCommand = new RelayCommand(_ => AddRecord());
             EditRecordCommand = new RelayCommand(_ => EditRecord(), _ => SelectedRecord != null);
-            DeleteRecordCommand = new RelayCommand(async _ => await DeleteRecordAsync(), _ => SelectedRecord != null);
+            DeleteRecordCommand = new RelayCommand(
+                async _ => await DeleteRecordAsync(),
+                _ => SelectedRecord != null);
 
-            LoadData(groupId);
+            LoadData();
             LoadGroupTemplates();
         }
 
-        private async void LoadData(int groupId)
+        private async void LoadData()
         {
-            var data = await _repo.GetByGroupIdAsync(groupId);
-            Records.Clear();
-            foreach (var r in data)
-                Records.Add(r);
+            try
+            {
+                var data = await _repo.GetByGroupIdAsync(_groupId);
+                Records.Clear();
+                foreach (var r in data)
+                    Records.Add(r);
 
-            var subjectGroups = data
+                await LoadAvailableSubjects();
+                CalculateSubjectAverages();
+
+                OnPropertyChanged(nameof(AverageGrade));
+                OnPropertyChanged(nameof(TotalAbsences));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
+            }
+        }
+
+        private async Task LoadAvailableSubjects()
+        {
+            AvailableSubjects.Clear();
+            var allSubjectsOption = new Subject { Id = 0, Name = "Все" };
+            AvailableSubjects.Add(allSubjectsOption);
+
+            var subjects = await _subjectRepo.GetByGroupIdAsync(_groupId);
+            foreach (var s in subjects)
+                AvailableSubjects.Add(s);
+
+            SelectedSubjectFilter = allSubjectsOption;
+        }
+
+        private void CalculateSubjectAverages()
+        {
+            var subjectGroups = Records
                 .Where(r => r.FinalGrade != null)
                 .GroupBy(r => r.Subject.Name)
                 .Select(g => new SubjectPerformance
@@ -94,9 +152,17 @@ namespace CuratorApp.ViewModel
             SubjectAverages.Clear();
             foreach (var s in subjectGroups)
                 SubjectAverages.Add(s);
+        }
 
-            OnPropertyChanged(nameof(AverageGrade));
-            OnPropertyChanged(nameof(TotalAbsences));
+        private void ApplyFilter()
+        {
+            FilteredRecords.Clear();
+            var filtered = SelectedSubjectFilter == null || SelectedSubjectFilter.Id == 0
+                ? Records
+                : Records.Where(r => r.Subject.Id == SelectedSubjectFilter.Id);
+
+            foreach (var r in filtered)
+                FilteredRecords.Add(r);
         }
 
         private async void LoadGroupTemplates()
@@ -121,21 +187,15 @@ namespace CuratorApp.ViewModel
                 }
 
                 var keywords = await _templateRepo.GetKeywordsAsync(SelectedGroupTemplate.Id);
-                var values = new System.Collections.Generic.Dictionary<string, string>();
-
-                foreach (var key in keywords)
+                var values = new System.Collections.Generic.Dictionary<string, string>
                 {
-                    values[key.Placeholder] = key.Placeholder switch
-                    {
-                        "[Группа]" => group.Name,
-                        "[СреднийБалл]" => AverageGrade.ToString("0.00"),
-                        "[Пропуски]" => TotalAbsences.ToString(),
-                        "[Дата]" => DateTime.Now.ToString("dd.MM.yyyy"),
-                        "[Время]" => DateTime.Now.ToString("HH:mm"),
-                        "[Специальность]" => group.Specialization ?? "",
-                        _ => ""
-                    };
-                }
+                    ["[Группа]"] = group.Name,
+                    ["[СреднийБалл]"] = AverageGrade.ToString("0.00"),
+                    ["[Пропуски]"] = TotalAbsences.ToString(),
+                    ["[Дата]"] = DateTime.Now.ToString("dd.MM.yyyy"),
+                    ["[Время]"] = DateTime.Now.ToString("HH:mm"),
+                    ["[Специальность]"] = group.Specialization ?? ""
+                };
 
                 var processor = new TemplateProcessor();
                 var fileName = $"{SelectedGroupTemplate.Name}_{DateTime.Now:dd-MM-yyyy_HH-mm}.docx";
@@ -144,29 +204,30 @@ namespace CuratorApp.ViewModel
                     SelectedGroupTemplate.TemplatePath,
                     values,
                     fileName,
-                    groupName: group.Name
+                    group.Name
                 );
 
-                MessageBox.Show("Отчёт сгенерирован:\n" + output);
+                MessageBox.Show($"Отчёт сгенерирован:\n{output}");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка генерации отчёта:\n" + ex.Message);
+                MessageBox.Show($"Ошибка генерации отчёта:\n{ex.Message}");
             }
         }
 
         private void AddRecord()
         {
             var newRecord = new AnnualRecord();
-            var vm = new AnnualRecordEditViewModel(newRecord, _repo, _groupId);
+            var vm = new AnnualRecordEditViewModel(newRecord, _repo, _subjectRepo, _groupId);
             var win = new AnnualRecordEditWindow(vm);
             if (win.ShowDialog() == true)
-                LoadData(_groupId);
+                LoadData();
         }
 
         private void EditRecord()
         {
             if (SelectedRecord == null) return;
+
             var copy = new AnnualRecord
             {
                 Id = SelectedRecord.Id,
@@ -176,19 +237,27 @@ namespace CuratorApp.ViewModel
                 FinalGrade = SelectedRecord.FinalGrade,
                 AbsenceCount = SelectedRecord.AbsenceCount
             };
-            var vm = new AnnualRecordEditViewModel(copy, _repo, _groupId);
+
+            var vm = new AnnualRecordEditViewModel(copy, _repo, _subjectRepo, _groupId);
             var win = new AnnualRecordEditWindow(vm);
             if (win.ShowDialog() == true)
-                LoadData(_groupId);
+                LoadData();
         }
 
         private async Task DeleteRecordAsync()
         {
-            if (SelectedRecord == null) return;
-            if (MessageBox.Show("Удалить запись?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (SelectedRecord == null ||
+                MessageBox.Show("Удалить запись?", "Подтверждение", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                return;
+
+            try
             {
                 await _repo.DeleteAsync(SelectedRecord.Id);
-                LoadData(_groupId);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка удаления: {ex.Message}");
             }
         }
 

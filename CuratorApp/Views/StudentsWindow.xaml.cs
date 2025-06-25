@@ -20,7 +20,5 @@ namespace CuratorApp.Views
                 vm.OpenDetailCommand.Execute(null);
             }
         }
-
-
     }
 }

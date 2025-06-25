@@ -12,12 +12,12 @@ namespace CuratorApp.ViewModel
     public class AnnualRecordEditViewModel : INotifyPropertyChanged
     {
         private readonly IAnnualRecordRepository _repo;
+        private readonly ISubjectRepository _subjectRepo;
         private readonly int _groupId;
 
-        public AnnualRecord Record { get; set; }
-
-        public ObservableCollection<Student> Students { get; set; } = new();
-        public ObservableCollection<Subject> Subjects { get; set; } = new();
+        public AnnualRecord Record { get; }
+        public ObservableCollection<Student> Students { get; } = new();
+        public ObservableCollection<Subject> Subjects { get; } = new();
 
         private Student? _selectedStudent;
         public Student? SelectedStudent
@@ -25,12 +25,10 @@ namespace CuratorApp.ViewModel
             get => _selectedStudent;
             set
             {
-                if (_selectedStudent != value)
-                {
-                    _selectedStudent = value;
-                    Record.StudentId = value?.Id ?? 0;
-                    OnPropertyChanged(nameof(SelectedStudent));
-                }
+                if (_selectedStudent == value) return;
+                _selectedStudent = value;
+                Record.StudentId = value?.Id ?? 0;
+                OnPropertyChanged(nameof(SelectedStudent));
             }
         }
 
@@ -40,12 +38,10 @@ namespace CuratorApp.ViewModel
             get => _selectedSubject;
             set
             {
-                if (_selectedSubject != value)
-                {
-                    _selectedSubject = value;
-                    Record.SubjectId = value?.Id ?? 0;
-                    OnPropertyChanged(nameof(SelectedSubject));
-                }
+                if (_selectedSubject == value) return;
+                _selectedSubject = value;
+                Record.SubjectId = value?.Id ?? 0;
+                OnPropertyChanged(nameof(SelectedSubject));
             }
         }
 
@@ -54,11 +50,9 @@ namespace CuratorApp.ViewModel
             get => Record.CourseNumber;
             set
             {
-                if (Record.CourseNumber != value)
-                {
-                    Record.CourseNumber = value;
-                    OnPropertyChanged(nameof(CourseNumber));
-                }
+                if (Record.CourseNumber == value) return;
+                Record.CourseNumber = value;
+                OnPropertyChanged(nameof(CourseNumber));
             }
         }
 
@@ -67,11 +61,9 @@ namespace CuratorApp.ViewModel
             get => Record.FinalGrade;
             set
             {
-                if (Record.FinalGrade != value)
-                {
-                    Record.FinalGrade = value;
-                    OnPropertyChanged(nameof(FinalGrade));
-                }
+                if (Record.FinalGrade == value) return;
+                Record.FinalGrade = value;
+                OnPropertyChanged(nameof(FinalGrade));
             }
         }
 
@@ -80,41 +72,53 @@ namespace CuratorApp.ViewModel
             get => Record.AbsenceCount;
             set
             {
-                if (Record.AbsenceCount != value)
-                {
-                    Record.AbsenceCount = value;
-                    OnPropertyChanged(nameof(AbsenceCount));
-                }
+                if (Record.AbsenceCount == value) return;
+                Record.AbsenceCount = value;
+                OnPropertyChanged(nameof(AbsenceCount));
             }
         }
 
         public ICommand SaveCommand { get; }
 
-        public AnnualRecordEditViewModel(AnnualRecord record, IAnnualRecordRepository repo, int groupId)
+        public AnnualRecordEditViewModel(
+            AnnualRecord record,
+            IAnnualRecordRepository repo,
+            ISubjectRepository subjectRepo,
+            int groupId)
         {
             Record = record;
             _repo = repo;
+            _subjectRepo = subjectRepo;
             _groupId = groupId;
 
             LoadData();
-
             SaveCommand = new RelayCommand(async _ => await SaveAsync());
         }
 
         private async void LoadData()
         {
-            var students = await _repo.GetStudentsByGroupIdAsync(_groupId);
-            Students.Clear();
-            foreach (var s in students)
-                Students.Add(s);
+            try
+            {
+                var studentsTask = _repo.GetStudentsByGroupIdAsync(_groupId);
+                var subjectsTask = _subjectRepo.GetAllAsync();
 
-            var subjects = await _repo.GetAllSubjectsAsync();
-            Subjects.Clear();
-            foreach (var s in subjects)
-                Subjects.Add(s);
+                await Task.WhenAll(studentsTask, subjectsTask);
 
-            SelectedStudent = Students.FirstOrDefault(s => s.Id == Record.StudentId);
-            SelectedSubject = Subjects.FirstOrDefault(s => s.Id == Record.SubjectId);
+                Students.Clear();
+                foreach (var s in await studentsTask)
+                    Students.Add(s);
+
+                Subjects.Clear();
+                foreach (var s in await subjectsTask)
+                    Subjects.Add(s);
+
+                SelectedStudent = Students.FirstOrDefault(s => s.Id == Record.StudentId);
+                SelectedSubject = Subjects.FirstOrDefault(s => s.Id == Record.SubjectId);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
+            }
         }
 
         private async Task SaveAsync()
@@ -125,25 +129,27 @@ namespace CuratorApp.ViewModel
                 return;
             }
 
-            if (Record.Id == 0)
-                await _repo.AddAsync(Record);
-            else
-                await _repo.UpdateAsync(Record);
+            try
+            {
+                if (Record.Id == 0)
+                    await _repo.AddAsync(Record);
+                else
+                    await _repo.UpdateAsync(Record);
 
-            CloseRequested?.Invoke(this, true);
+                CloseRequested?.Invoke(this, true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+            }
         }
 
         private bool Validate()
         {
-            if (SelectedStudent == null)
-                return false;
-            if (SelectedSubject == null)
-                return false;
-            if (CourseNumber <= 0)
-                return false;
-            if (AbsenceCount < 0)
-                return false;
-            return true;
+            return SelectedStudent != null &&
+                   SelectedSubject != null &&
+                   CourseNumber > 0 &&
+                   AbsenceCount >= 0;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

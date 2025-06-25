@@ -55,10 +55,6 @@
                     <TextBlock Text="Логин:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"/>
                     <TextBox Name="RegisterUsernameTextBox" Grid.Row="0" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
 
-                    <!-- Email -->
-                    <TextBlock Text="Email:" VerticalAlignment="Center" Grid.Row="1" Grid.Column="0" Margin="0,0,10,10"/>
-                    <TextBox Name="RegisterEmailTextBox" Grid.Row="1" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
-
                     <!-- Пароль -->
                     <TextBlock Text="Пароль:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" Margin="0,0,10,10"/>
                     <PasswordBox Name="RegisterPasswordBox" Grid.Row="2" Grid.Column="1" Height="25" Margin="0,0,0,10"/>

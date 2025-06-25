@@ -22,11 +22,19 @@ namespace CuratorApp.Views
     /// </summary>
     public partial class MainWindow : Window
     {
-        public MainWindow(ICuratorRepository repo, IGroupRepository groupRepository, Curator curator)
+        private Window ParentWindow { get; }
+        public MainWindow(ICuratorRepository repo, IGroupRepository groupRepository, Curator curator, Window window)
         {
+            ParentWindow = window;
             InitializeComponent();
             DataContext = new CuratorAccountViewModel(repo, groupRepository, curator);
             this.Title = curator.Username;
+        }
+
+
+        private void Window_Closed(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            ParentWindow.Show();
         }
     }
 }
