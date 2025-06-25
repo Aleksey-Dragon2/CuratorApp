@@ -24,7 +24,6 @@ namespace CuratorApp.Repositories
 
             await _context.SaveChangesAsync();
 
-            curator.Password = null!;
             return curator;
         }
 
@@ -70,6 +69,23 @@ namespace CuratorApp.Repositories
                 .OrderBy(g => g.Name)
                 .ToListAsync();
         }
+
+        public async Task<List<Group>> GetAvailableGroupsAsync(int curatorGroupId)
+        {
+            // Все GroupId, занятые кураторами
+            var takenGroupIds = await _context.Curators
+                .Where(c => c.GroupId != curatorGroupId)
+                .Select(c => c.GroupId)
+                .ToListAsync();
+
+            // Возвращаем группы, которые не заняты ИЛИ являются текущей группой куратора
+            var availableGroups = await _context.Groups
+                .Where(g => !takenGroupIds.Contains(g.Id) || g.Id == curatorGroupId)
+                .ToListAsync();
+
+            return availableGroups;
+        }
+
 
         public async Task<bool> DeleteAsync(int id)
         {

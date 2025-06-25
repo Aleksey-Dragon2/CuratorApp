@@ -40,6 +40,65 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <!-- Username -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- FirstName -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- LastName -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Phone -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Group -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Password -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Confirm -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Button -->
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" MinWidth="130"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Логин -->
+                    <TextBlock Text="Логин:" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"/>
+                    <TextBox Name="RegisterUsernameTextBox" Grid.Row="0" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Имя -->
+                    <TextBlock Text="Имя:" Grid.Row="1" Grid.Column="0" Margin="0,0,10,10"/>
+                    <TextBox Name="RegisterFirstNameTextBox" Grid.Row="1" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Фамилия -->
+                    <TextBlock Text="Фамилия:" Grid.Row="2" Grid.Column="0" Margin="0,0,10,10"/>
+                    <TextBox Name="RegisterLastNameTextBox" Grid.Row="2" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Телефон -->
+                    <TextBlock Text="Телефон:" Grid.Row="3" Grid.Column="0" Margin="0,0,10,10"/>
+                    <TextBox Name="RegisterPhoneTextBox" Grid.Row="3" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Группа -->
+                    <TextBlock Text="Группа:" Grid.Row="4" Grid.Column="0" Margin="0,0,10,10"/>
+                    <ComboBox Name="GroupComboBox" Grid.Row="4" Grid.Column="1" Height="25" Margin="0,0,0,10"
+                  DisplayMemberPath="Name" SelectedValuePath="Id"/>
+
+                    <!-- Пароль -->
+                    <TextBlock Text="Пароль:" Grid.Row="5" Grid.Column="0" Margin="0,0,10,10"/>
+                    <PasswordBox Name="RegisterPasswordBox" Grid.Row="5" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Подтверждение -->
+                    <TextBlock Text="Подтверждение пароля:" Grid.Row="6" Grid.Column="0" Margin="0,0,10,10"/>
+                    <PasswordBox Name="RegisterConfirmPasswordBox" Grid.Row="6" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+
+                    <!-- Кнопка -->
+                    <Button Content="Зарегистрироваться" Grid.Row="7" Grid.Column="1" Width="140" Height="30" HorizontalAlignment="Left" Click="RegisterButton_Click"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка Регистрация группы -->
+            <TabItem Header="Регистрация группы">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -51,22 +110,23 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Логин пользователя -->
-                    <TextBlock Text="Логин:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"/>
-                    <TextBox Name="RegisterUsernameTextBox" Grid.Row="0" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+                    <!-- Название -->
+                    <TextBlock Text="Название группы:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                    <TextBox Name="GroupNameTextBox" Grid.Row="0" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
 
-                    <!-- Пароль -->
-                    <TextBlock Text="Пароль:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" Margin="0,0,10,10"/>
-                    <PasswordBox Name="RegisterPasswordBox" Grid.Row="2" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+                    <!-- Курс -->
+                    <TextBlock Text="Номер курса:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                    <TextBox Name="CourseNumberTextBox" Grid.Row="1" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
 
-                    <!-- Подтверждение пароля -->
-                    <TextBlock Text="Подтверждение пароля:" VerticalAlignment="Center" Grid.Row="3" Grid.Column="0" Margin="0,0,10,10"/>
-                    <PasswordBox Name="RegisterConfirmPasswordBox" Grid.Row="3" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
+                    <!-- Специализация -->
+                    <TextBlock Text="Специализация:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                    <TextBox Name="SpecializationTextBox" Grid.Row="2" Grid.Column="1" Height="25" Margin="0,0,0,10"/>
 
-                    <!-- Кнопка Зарегистрироваться -->
-                    <Button Content="Зарегистрироваться" Grid.Row="4" Grid.Column="1" Width="140" Height="30" HorizontalAlignment="Left" Click="RegisterButton_Click"/>
+                    <!-- Кнопка создать -->
+                    <Button Content="Создать группу" Grid.Row="3" Grid.Column="1" Width="140" Height="30" HorizontalAlignment="Left" Click="CreateGroupButton_Click"/>
                 </Grid>
             </TabItem>
+
         </TabControl>
     </Grid>
 </Window>

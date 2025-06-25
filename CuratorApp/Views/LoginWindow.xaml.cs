@@ -14,12 +14,16 @@ namespace CuratorApp
         private readonly IGroupRepository _groupRepository;
 
 
+
+
         public LoginWindow(ICuratorRepository curatorRepository, IGroupRepository groupRepository)
         {
             _groupRepository = groupRepository;
             _curatorRepository = curatorRepository;
             InitializeComponent();
+            LoadAvailableGroups();
         }
+
 
         // Обработчик кнопки Войти
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -53,9 +57,16 @@ namespace CuratorApp
             string password = RegisterPasswordBox.Password;
             string confirmPassword = RegisterConfirmPasswordBox.Password;
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            string firstName = RegisterFirstNameTextBox.Text.Trim();
+            string lastName = RegisterLastNameTextBox.Text.Trim();
+            string phone = RegisterPhoneTextBox.Text.Trim();
+
+            var selectedGroup = GroupComboBox.SelectedItem as Group;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || selectedGroup == null ||
+                string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
             {
-                MessageBox.Show("Имя пользователя и пароль обязательны!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Все обязательные поля должны быть заполнены!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -69,11 +80,10 @@ namespace CuratorApp
             {
                 Username = username,
                 Password = password,
-                // При регистрации можно добавить FirstName, LastName, Phone, GroupId
-                FirstName = "Не указано",
-                LastName = "Не указано",
-                Phone = null,
-                GroupId = 1 // Или брать из UI
+                FirstName = firstName,
+                LastName = lastName,
+                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+                GroupId = selectedGroup.Id
             };
 
             try
@@ -82,12 +92,55 @@ namespace CuratorApp
                 if (registeredUser != null)
                 {
                     MessageBox.Show("Регистрация прошла успешно!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                    // Можно очистить поля или перейти к другому окну
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка регистрации: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void LoadAvailableGroups()
+        {
+            var groups = await _curatorRepository.GetAvailableGroupsAsync(0); // 0 = без исключений
+            GroupComboBox.ItemsSource = groups;
+        }
+        private async void CreateGroupButton_Click(object sender, RoutedEventArgs e)
+        {
+            string name = GroupNameTextBox.Text.Trim();
+            string courseText = CourseNumberTextBox.Text.Trim();
+            string specialization = SpecializationTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                MessageBox.Show("Название группы обязательно.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!int.TryParse(courseText, out int courseNumber) || courseNumber <= 0)
+            {
+                MessageBox.Show("Некорректный номер курса.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var group = new Group
+            {
+                Name = name,
+                CourseNumber = courseNumber,
+                Specialization = string.IsNullOrWhiteSpace(specialization) ? null : specialization
+            };
+
+            try
+            {
+                await _groupRepository.CreateAsync(group);
+                MessageBox.Show("Группа успешно создана!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                GroupNameTextBox.Clear();
+                CourseNumberTextBox.Clear();
+                SpecializationTextBox.Clear();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при создании группы: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

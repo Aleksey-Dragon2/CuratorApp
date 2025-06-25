@@ -89,13 +89,14 @@ namespace CuratorApp.ViewModels
 
         private async void LoadGroups()
         {
-            var groups = await _curatorRepository.GetGroupsAsync();
+            var groups = await _curatorRepository.GetAvailableGroupsAsync(GroupId);
             Groups.Clear();
             foreach (var group in groups)
                 Groups.Add(group);
 
             SelectedGroup = Groups.FirstOrDefault(g => g.Id == GroupId);
         }
+
 
         private async Task SaveAsync()
         {

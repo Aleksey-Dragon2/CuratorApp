@@ -12,6 +12,15 @@ namespace CuratorApp.Repositories
         {
             _context = context;
         }
+        public async Task CreateAsync(Group group)
+        {
+            if (await _context.Groups.AnyAsync(g => g.Name == group.Name))
+                throw new Exception("Группа с таким названием уже существует.");
+
+            await _context.Groups.AddAsync(group);
+            await _context.SaveChangesAsync();
+        }
+
 
         public async Task<Group?> GetByIdAsync(int id)
         {
