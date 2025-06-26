@@ -44,6 +44,7 @@ namespace CuratorApp.ViewModels
 
         public Action? CloseAction { get; set; }
         public event PropertyChangedEventHandler? PropertyChanged;
+
         private TemplateType _selectedTemplateType;
         public TemplateType SelectedTemplateType
         {
@@ -54,7 +55,7 @@ namespace CuratorApp.ViewModels
                 {
                     _selectedTemplateType = value;
                     OnPropertyChanged(nameof(SelectedTemplateType));
-                    LoadDefaultKeys(); // Обновляем список ключей при изменении типа
+                    LoadDefaultKeys();
                 }
             }
         }
@@ -66,9 +67,8 @@ namespace CuratorApp.ViewModels
 
             if (template != null)
             {
-                // Заполняем поля из переданного шаблона
                 Name = template.Name;
-                SelectedFilePath = template.TemplatePath;
+                SelectedFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, template.TemplatePath);
                 SelectedTemplateType = template.TemplateType;
             }
             else
@@ -92,12 +92,6 @@ namespace CuratorApp.ViewModels
             SaveCommand = new RelayCommand(async _ => await SaveAsync());
 
             LoadDefaultKeys();
-
-            if (template != null)
-            {
-                Name = template.Name;
-                SelectedFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, template.TemplatePath);
-            }
         }
 
         private void LoadDefaultKeys()
@@ -106,22 +100,20 @@ namespace CuratorApp.ViewModels
 
             if (SelectedTemplateType == TemplateType.Group)
             {
-                // Ключи только для групповых отчетов
                 var groupKeys = new[]
                 {
-            "[Группа]", "[СреднийБалл]", "[Пропуски]", "[Дата]", "[Время]", "[Специальность]"
-        };
+                    "[Группа]", "[СреднийБалл]", "[Пропуски]", "[Дата]", "[Время]", "[Специальность]"
+                };
                 foreach (var key in groupKeys)
                     AvailableKeys.Add(key);
             }
             else
             {
-                // Ключи для индивидуальных отчетов
                 var individualKeys = new[]
                 {
-            "[ФИО]", "[Возраст]", "[Группа]", "[Специальность]",
-            "[СреднийБалл]", "[Пропуски]", "[ДатаРождения]"
-        };
+                    "[ФИО]", "[Возраст]", "[Группа]", "[Специальность]",
+                    "[СреднийБалл]", "[Пропуски]", "[ДатаРождения]"
+                };
                 foreach (var key in individualKeys)
                     AvailableKeys.Add(key);
             }
@@ -147,22 +139,49 @@ namespace CuratorApp.ViewModels
             if (_originalTemplate == null)
                 return;
 
-            var keywords = await _repo.GetKeywordsAsync(_originalTemplate.Id);
-            SelectedKeys.Clear();
-            foreach (var k in keywords)
-                SelectedKeys.Add(k.Placeholder);
+            try
+            {
+                var keywords = await _repo.GetKeywordsAsync(_originalTemplate.Id);
+                SelectedKeys.Clear();
+                foreach (var k in keywords)
+                    SelectedKeys.Add(k.Placeholder);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки ключевых слов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async Task SaveAsync()
         {
-            if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(SelectedFilePath))
+            if (string.IsNullOrWhiteSpace(Name))
             {
-                MessageBox.Show("Укажите имя и выберите файл");
+                MessageBox.Show("Введите имя шаблона.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SelectedFilePath))
+            {
+                MessageBox.Show("Выберите файл шаблона.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!File.Exists(SelectedFilePath))
+            {
+                MessageBox.Show("Указанный файл не существует.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             string targetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates");
-            Directory.CreateDirectory(targetDir);
+            try
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось создать директорию для шаблонов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             string destPath = Path.Combine(targetDir, Path.GetFileName(SelectedFilePath));
 
@@ -172,28 +191,34 @@ namespace CuratorApp.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка при копировании файла: " + ex.Message);
+                MessageBox.Show("Ошибка при копировании файла: " + ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             var template = new DocumentTemplate
             {
                 Id = _originalTemplate?.Id ?? 0,
-                Name = Name,
+                Name = Name.Trim(),
                 TemplatePath = Path.Combine("Templates", Path.GetFileName(SelectedFilePath)),
                 TemplateType = SelectedTemplateType
             };
 
-            if (_originalTemplate == null)
-                await _repo.CreateAsync(template);
-            else
-                await _repo.UpdateAsync(template);
+            try
+            {
+                if (_originalTemplate == null)
+                    await _repo.CreateAsync(template);
+                else
+                    await _repo.UpdateAsync(template);
 
-            await _repo.SaveKeywordsAsync(template.Id, SelectedKeys.ToList());
+                await _repo.SaveKeywordsAsync(template.Id, SelectedKeys.ToList());
 
-            CloseAction?.Invoke();
+                CloseAction?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения шаблона: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
-
 
         private void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

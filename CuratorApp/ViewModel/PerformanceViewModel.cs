@@ -140,30 +140,46 @@ namespace CuratorApp.ViewModel
 
         private void CalculateSubjectAverages()
         {
-            var subjectGroups = Records
-                .Where(r => r.FinalGrade != null)
-                .GroupBy(r => r.Subject.Name)
-                .Select(g => new SubjectPerformance
-                {
-                    SubjectName = g.Key,
-                    AverageGrade = Math.Round(g.Average(r => r.FinalGrade ?? 0), 2)
-                });
+            try
+            {
+                var subjectGroups = Records
+                    .Where(r => r.FinalGrade.HasValue && r.Subject != null)
+                    .GroupBy(r => r.Subject.Name)
+                    .Select(g => new SubjectPerformance
+                    {
+                        SubjectName = g.Key,
+                        AverageGrade = Math.Round(g.Average(r => r.FinalGrade ?? 0), 2)
+                    });
 
-            SubjectAverages.Clear();
-            foreach (var s in subjectGroups)
-                SubjectAverages.Add(s);
+                SubjectAverages.Clear();
+                foreach (var s in subjectGroups)
+                    SubjectAverages.Add(s);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при вычислении среднего балла: {ex.Message}");
+            }
         }
+
 
         private void ApplyFilter()
         {
-            FilteredRecords.Clear();
-            var filtered = SelectedSubjectFilter == null || SelectedSubjectFilter.Id == 0
-                ? Records
-                : Records.Where(r => r.Subject.Id == SelectedSubjectFilter.Id);
+            try
+            {
+                FilteredRecords.Clear();
+                var filtered = SelectedSubjectFilter == null || SelectedSubjectFilter.Id == 0
+                    ? Records
+                    : Records.Where(r => r.Subject != null && r.Subject.Id == SelectedSubjectFilter.Id);
 
-            foreach (var r in filtered)
-                FilteredRecords.Add(r);
+                foreach (var r in filtered)
+                    FilteredRecords.Add(r);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при фильтрации: {ex.Message}");
+            }
         }
+
 
         private async void LoadGroupTemplates()
         {
@@ -200,39 +216,41 @@ namespace CuratorApp.ViewModel
 
                 // Студенческие строки
                 var rows = Records
-                    .GroupBy(r => r.Student.Id)
-                    .Select(g =>
-                    {
-                        var student = g.First().Student;
-                        var rowDict = new Dictionary<string, string>();
+                   .Where(r => r.Student != null && r.Subject != null)
+                   .GroupBy(r => r.Student.Id)
+                   .Select(g =>
+                   {
+                       var student = g.First().Student;
+                       var rowDict = new Dictionary<string, string>();
 
-                        foreach (var keyword in keywords)
-                        {
-                            switch (keyword.Placeholder)
-                            {
-                                case "[ФИО]":
-                                    rowDict[keyword.Placeholder] = $"{student.LastName} {student.FirstName}";
-                                    break;
-                                case "[Оценка]":
-                                    rowDict[keyword.Placeholder] = string.Join(", ",
-                                        g.Select(r => r.FinalGrade?.ToString("0.0") ?? "-"));
-                                    break;
-                                case "[Предмет]":
-                                    rowDict[keyword.Placeholder] = string.Join(", ",
-                                        g.Select(r => r.Subject.Name));
-                                    break;
-                                case "[Пропуски]":
-                                    rowDict[keyword.Placeholder] = g.Sum(r => r.AbsenceCount).ToString();
-                                    break;
-                                default:
-                                    rowDict[keyword.Placeholder] = "-";
-                                    break;
-                            }
-                        }
+                       foreach (var keyword in keywords)
+                       {
+                           switch (keyword.Placeholder)
+                           {
+                               case "[ФИО]":
+                                   rowDict[keyword.Placeholder] = $"{student.LastName} {student.FirstName}";
+                                   break;
+                               case "[Оценка]":
+                                   rowDict[keyword.Placeholder] = string.Join(", ",
+                                       g.Select(r => r.FinalGrade.HasValue ? r.FinalGrade.Value.ToString("0.0") : "-"));
+                                   break;
+                               case "[Предмет]":
+                                   rowDict[keyword.Placeholder] = string.Join(", ",
+                                       g.Select(r => r.Subject?.Name ?? "-"));
+                                   break;
+                               case "[Пропуски]":
+                                   rowDict[keyword.Placeholder] = g.Sum(r => r.AbsenceCount).ToString();
+                                   break;
+                               default:
+                                   rowDict[keyword.Placeholder] = "-";
+                                   break;
+                           }
+                       }
 
-                        return rowDict;
-                    })
-                    .ToList();
+                       return rowDict;
+                   })
+                   .ToList();
+
 
                 var processor = new TemplateProcessor();
                 var fileName = $"{SelectedGroupTemplate.Name}_{DateTime.Now:dd-MM-yyyy_HH-mm}.docx";
@@ -266,23 +284,35 @@ namespace CuratorApp.ViewModel
 
         private void EditRecord()
         {
-            if (SelectedRecord == null) return;
-
-            var copy = new AnnualRecord
+            if (SelectedRecord == null)
             {
-                Id = SelectedRecord.Id,
-                StudentId = SelectedRecord.StudentId,
-                SubjectId = SelectedRecord.SubjectId,
-                CourseNumber = SelectedRecord.CourseNumber,
-                FinalGrade = SelectedRecord.FinalGrade,
-                AbsenceCount = SelectedRecord.AbsenceCount
-            };
+                MessageBox.Show("Не выбрана запись для редактирования.");
+                return;
+            }
 
-            var vm = new AnnualRecordEditViewModel(copy, _repo, _subjectRepo, _groupId);
-            var win = new AnnualRecordEditWindow(vm);
-            if (win.ShowDialog() == true)
-                LoadData();
+            try
+            {
+                var copy = new AnnualRecord
+                {
+                    Id = SelectedRecord.Id,
+                    StudentId = SelectedRecord.StudentId,
+                    SubjectId = SelectedRecord.SubjectId,
+                    CourseNumber = SelectedRecord.CourseNumber,
+                    FinalGrade = SelectedRecord.FinalGrade,
+                    AbsenceCount = SelectedRecord.AbsenceCount
+                };
+
+                var vm = new AnnualRecordEditViewModel(copy, _repo, _subjectRepo, _groupId);
+                var win = new AnnualRecordEditWindow(vm);
+                if (win.ShowDialog() == true)
+                    LoadData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии записи: {ex.Message}");
+            }
         }
+
 
         private async Task DeleteRecordAsync()
         {

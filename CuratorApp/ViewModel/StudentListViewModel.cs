@@ -13,7 +13,6 @@ namespace CuratorApp.ViewModels
     {
         private readonly IStudentRepository _studentRepo;
         private readonly IGroupRepository _groupRepo;
-
         private readonly int _groupId;
 
         public ObservableCollection<Student> Students { get; set; } = new();
@@ -32,13 +31,11 @@ namespace CuratorApp.ViewModels
             set => SetField(ref _upcomingBirthdayInfo, value);
         }
 
-
         public ICommand AddCommand { get; }
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand OpenDetailCommand { get; }
-
 
         public StudentListViewModel(IStudentRepository studentRepo, IGroupRepository groupRepo, int groupId)
         {
@@ -55,18 +52,24 @@ namespace CuratorApp.ViewModels
             RefreshCommand = new RelayCommand(async _ => await LoadStudentsAsync());
             OpenDetailCommand = new RelayCommand(_ => OpenDetail(), _ => SelectedStudent != null);
 
-
             _ = LoadStudentsAsync();
         }
 
         private async Task LoadStudentsAsync()
         {
-            Students.Clear();
-            var list = await _studentRepo.GetByGroupIdAsync(_groupId);
-            foreach (var s in list)
-                Students.Add(s);
+            try
+            {
+                Students.Clear();
+                var list = await _studentRepo.GetByGroupIdAsync(_groupId);
+                foreach (var s in list)
+                    Students.Add(s);
 
-            SetUpcomingBirthdayInfo();
+                SetUpcomingBirthdayInfo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки студентов: {ex.Message}");
+            }
         }
 
         private void SetUpcomingBirthdayInfo()
@@ -80,6 +83,7 @@ namespace CuratorApp.ViewModels
             var today = DateOnly.FromDateTime(DateTime.Today);
 
             var next = Students
+                .Where(s => s.Birthday.Month > 0 && s.Birthday.Month <= 12 && s.Birthday.Day > 0 && s.Birthday.Day <= 31)
                 .Select(s =>
                 {
                     var nextBirthday = new DateOnly(today.Year, s.Birthday.Month, s.Birthday.Day);
@@ -109,6 +113,13 @@ namespace CuratorApp.ViewModels
             if (result == true)
             {
                 var newStudent = addWindow.Student;
+
+                if (!IsValidStudent(newStudent))
+                {
+                    MessageBox.Show("Невалидные данные студента.");
+                    return;
+                }
+
                 try
                 {
                     await _studentRepo.CreateAsync(newStudent);
@@ -120,6 +131,7 @@ namespace CuratorApp.ViewModels
                 }
             }
         }
+
         private void OpenDetail()
         {
             if (SelectedStudent == null)
@@ -129,32 +141,43 @@ namespace CuratorApp.ViewModels
             window.ShowDialog();
         }
 
-
-
         private async void EditStudent(Student student)
         {
             var dialog = new StudentEditWindow(student, _studentRepo, _groupRepo);
             if (dialog.ShowDialog() == true)
             {
                 var updated = dialog.Student;
-                await _studentRepo.UpdateAsync(updated);
 
-                // Обновляем локальную коллекцию
-                var existing = Students.FirstOrDefault(s => s.Id == updated.Id);
-                if (existing != null)
+                if (!IsValidStudent(updated))
                 {
-                    existing.FirstName = updated.FirstName;
-                    existing.LastName = updated.LastName;
-                    existing.MiddleName = updated.MiddleName;
-                    existing.Birthday = updated.Birthday;
-                    existing.Phone = updated.Phone;
-                    existing.Address = updated.Address;
-                    existing.EnrollmentYear = updated.EnrollmentYear;
+                    MessageBox.Show("Невалидные данные студента.");
+                    return;
+                }
 
-                    OnPropertyChanged(nameof(Students)); // Обновление привязки
+                try
+                {
+                    await _studentRepo.UpdateAsync(updated);
+
+                    // Обновляем локальную коллекцию
+                    var existing = Students.FirstOrDefault(s => s.Id == updated.Id);
+                    if (existing != null)
+                    {
+                        existing.FirstName = updated.FirstName;
+                        existing.LastName = updated.LastName;
+                        existing.MiddleName = updated.MiddleName;
+                        existing.Birthday = updated.Birthday;
+                        existing.Phone = updated.Phone;
+                        existing.Address = updated.Address;
+                        existing.EnrollmentYear = updated.EnrollmentYear;
+                    }
+
+                    await LoadStudentsAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при обновлении: {ex.Message}");
                 }
             }
-            await LoadStudentsAsync();
         }
 
         private async Task DeleteStudentAsync()
@@ -163,9 +186,27 @@ namespace CuratorApp.ViewModels
 
             if (MessageBox.Show("Удалить студента?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                await _studentRepo.DeleteAsync(SelectedStudent.Id);
-                Students.Remove(SelectedStudent);
+                try
+                {
+                    await _studentRepo.DeleteAsync(SelectedStudent.Id);
+                    Students.Remove(SelectedStudent);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении: {ex.Message}");
+                }
             }
+        }
+
+        private bool IsValidStudent(Student s)
+        {
+            return
+                !string.IsNullOrWhiteSpace(s.FirstName) &&
+                !string.IsNullOrWhiteSpace(s.LastName) &&
+                s.Birthday != default &&
+                !string.IsNullOrWhiteSpace(s.Phone) &&
+                System.Text.RegularExpressions.Regex.IsMatch(s.Phone, @"^\+?\d{10,15}$") &&
+                s.EnrollmentYear > 1900 && s.EnrollmentYear <= DateTime.Now.Year;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

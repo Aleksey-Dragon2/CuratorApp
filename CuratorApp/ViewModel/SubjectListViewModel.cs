@@ -14,27 +14,40 @@ namespace CuratorApp.ViewModel
     {
         private readonly ISubjectRepository _repository;
         public ObservableCollection<Subject> Subjects { get; } = new();
-        public ICommand AddCommand { get; }
-        public ICommand EditCommand { get; }
-        public ICommand DeleteCommand { get; }
 
         private Subject? _selectedSubject;
         public Subject? SelectedSubject
         {
             get => _selectedSubject;
-            set { _selectedSubject = value; OnPropertyChanged(nameof(SelectedSubject)); }
+            set
+            {
+                if (_selectedSubject != value)
+                {
+                    _selectedSubject = value;
+                    OnPropertyChanged(nameof(SelectedSubject));
+                    // Обновляем состояние команд при смене выбранного предмета
+                    (EditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
+            }
         }
+
+        public ICommand AddCommand { get; }
+        public ICommand EditCommand { get; }
+        public ICommand DeleteCommand { get; }
 
         public SubjectListViewModel(ISubjectRepository repository)
         {
             _repository = repository;
+
             AddCommand = new RelayCommand(_ => Add());
             EditCommand = new RelayCommand(_ => Edit(), _ => SelectedSubject != null);
-            DeleteCommand = new RelayCommand(async _ => await Delete(), _ => SelectedSubject != null);
-            Load();
+            DeleteCommand = new RelayCommand(async _ => await DeleteAsync(), _ => SelectedSubject != null);
+
+            _ = LoadAsync();
         }
 
-        private async void Load()
+        private async Task LoadAsync()
         {
             Subjects.Clear();
             var list = await _repository.GetAllAsync();
@@ -47,31 +60,52 @@ namespace CuratorApp.ViewModel
             var vm = new SubjectEditViewModel(new Subject(), _repository);
             var win = new SubjectEditWindow(vm);
             if (win.ShowDialog() == true)
-                Load();
+            {
+                _ = LoadAsync();
+            }
         }
 
         private void Edit()
         {
             if (SelectedSubject == null) return;
+
+            // Копируем, чтобы не редактировать напрямую
             var copy = new Subject
             {
                 Id = SelectedSubject.Id,
                 Name = SelectedSubject.Name,
                 CourseNumber = SelectedSubject.CourseNumber
             };
+
             var vm = new SubjectEditViewModel(copy, _repository);
             var win = new SubjectEditWindow(vm);
             if (win.ShowDialog() == true)
-                Load();
+            {
+                _ = LoadAsync();
+            }
         }
 
-        private async Task Delete()
+        private async Task DeleteAsync()
         {
             if (SelectedSubject == null) return;
-            if (MessageBox.Show("Удалить предмет?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+
+            var res = MessageBox.Show(
+                $"Удалить предмет \"{SelectedSubject.Name}\"?",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (res == MessageBoxResult.Yes)
             {
-                await _repository.DeleteAsync(SelectedSubject.Id);
-                Load();
+                try
+                {
+                    await _repository.DeleteAsync(SelectedSubject.Id);
+                    await LoadAsync();
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

@@ -104,16 +104,44 @@ namespace CuratorApp.ViewModels
 
         private async Task SaveAsync()
         {
+            if (string.IsNullOrWhiteSpace(FirstName))
+            {
+                MessageBox.Show("Имя не может быть пустым.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(LastName))
+            {
+                MessageBox.Show("Фамилия не может быть пустой.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(Phone))
+            {
+                MessageBox.Show("Номер телефона обязателен.");
+                return;
+            }
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(Phone, @"^\+?\d{10,15}$"))
+            {
+                MessageBox.Show("Неверный формат номера телефона.");
+                return;
+            }
+
+            if (SelectedGroup == null)
+            {
+                MessageBox.Show("Выберите группу.");
+                return;
+            }
+
             _curator.FirstName = FirstName;
             _curator.LastName = LastName;
             _curator.Phone = Phone;
-            if (SelectedGroup != null)
-                _curator.GroupId = SelectedGroup.Id;
+            _curator.GroupId = SelectedGroup.Id;
 
             try
             {
                 await _curatorRepository.UpdateAsync(_curator);
-                // Можно показать сообщение об успехе
                 MessageBox.Show("Данные успешно сохранены.");
             }
             catch (Exception ex)
@@ -121,6 +149,7 @@ namespace CuratorApp.ViewModels
                 MessageBox.Show($"Ошибка при сохранении: {ex.Message}");
             }
         }
+
 
         private void OpenStudents()
         {

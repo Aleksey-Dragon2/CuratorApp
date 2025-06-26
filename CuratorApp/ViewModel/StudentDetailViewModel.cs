@@ -2,9 +2,9 @@
 using CuratorApp.Repositories;
 using CuratorApp.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
@@ -18,12 +18,21 @@ namespace CuratorApp.ViewModels
         private readonly IAnnualRecordRepository _annualRecordRepo;
         private readonly int _groupId;
 
-        public ObservableCollection<DocumentTemplate> Templates { get; set; } = new();
+        public ObservableCollection<DocumentTemplate> Templates { get; } = new();
         public DocumentTemplate? SelectedTemplate { get; set; }
 
         public string FullName => $"{_student.LastName} {_student.FirstName} {_student.MiddleName}";
         public string Birthday => $"Дата рождения: {_student.Birthday:dd.MM.yyyy}";
-        public string AgeInfo => $"Возраст: {DateTime.Today.Year - _student.Birthday.Year} лет";
+
+        public string AgeInfo
+        {
+            get
+            {
+                int age = CalculateAge(_student.Birthday, DateTime.Today);
+                return $"Возраст: {age} лет";
+            }
+        }
+
         public string Phone => $"Телефон: {_student.Phone}";
         public string Address => $"Адрес: {_student.Address}";
         public string EnrollmentYear => $"Год поступления: {_student.EnrollmentYear}";
@@ -47,15 +56,29 @@ namespace CuratorApp.ViewModels
             LoadTemplates();
         }
 
-        private async void LoadTemplates()
+        private static int CalculateAge(DateOnly birthday, DateTime today)
         {
-            var individualTemplates = await _templateRepo.GetByTypeAsync(TemplateType.Individual);
-            Templates.Clear();
-            foreach (var t in individualTemplates)
-                Templates.Add(t);
+            int age = today.Year - birthday.Year;
+            var birthdayThisYear = new DateTime(today.Year, birthday.Month, birthday.Day);
+            if (today < birthdayThisYear)
+                age--;
+            return age;
         }
 
-
+        private async void LoadTemplates()
+        {
+            try
+            {
+                var individualTemplates = await _templateRepo.GetByTypeAsync(TemplateType.Individual);
+                Templates.Clear();
+                foreach (var t in individualTemplates)
+                    Templates.Add(t);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка загрузки шаблонов: " + ex.Message);
+            }
+        }
 
         private async void Generate()
         {
@@ -76,8 +99,6 @@ namespace CuratorApp.ViewModels
                     return;
                 }
 
-                var values = new Dictionary<string, string>();
-
                 var annualRecords = await _annualRecordRepo.GetByStudentIdAsync(_student.Id);
                 int totalAbsences = annualRecords.Sum(r => r.AbsenceCount);
                 var grades = annualRecords
@@ -86,10 +107,11 @@ namespace CuratorApp.ViewModels
                     .ToList();
                 double averageGrade = grades.Count > 0 ? grades.Average() : 0;
 
+                var values = new Dictionary<string, string>();
+
                 foreach (var key in placeholders)
                 {
                     string placeholder = key.Placeholder;
-
                     switch (placeholder)
                     {
                         case "[ФИО]":
@@ -99,10 +121,7 @@ namespace CuratorApp.ViewModels
                             values[placeholder] = group.Name ?? "";
                             break;
                         case "[Возраст]":
-                            var age = DateTime.Today.Year - _student.Birthday.Year;
-                            if (_student.Birthday.ToDateTime(new TimeOnly(0)) > DateTime.Today.AddYears(-age))
-                                age--;
-                            values[placeholder] = age.ToString();
+                            values[placeholder] = CalculateAge(_student.Birthday, DateTime.Today).ToString();
                             break;
                         case "[Пропуски]":
                             values[placeholder] = totalAbsences.ToString();
@@ -124,9 +143,7 @@ namespace CuratorApp.ViewModels
 
                 var processor = new TemplateProcessor();
                 var studentFolder = $"{_student.LastName}_{_student.FirstName}";
-
                 var dateTimeSuffix = DateTime.Now.ToString("dd-MM-yyyy_HH-mm");
-
                 var fileName = $"{SelectedTemplate.Name}_{_student.LastName}_{dateTimeSuffix}.docx";
 
                 var output = processor.GenerateReport(
@@ -144,6 +161,5 @@ namespace CuratorApp.ViewModels
                 MessageBox.Show("Ошибка при генерации:\n" + ex.Message);
             }
         }
-
     }
 }
