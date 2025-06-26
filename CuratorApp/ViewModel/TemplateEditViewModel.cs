@@ -54,6 +54,7 @@ namespace CuratorApp.ViewModels
                 {
                     _selectedTemplateType = value;
                     OnPropertyChanged(nameof(SelectedTemplateType));
+                    LoadDefaultKeys(); // Обновляем список ключей при изменении типа
                 }
             }
         }
@@ -102,13 +103,28 @@ namespace CuratorApp.ViewModels
         private void LoadDefaultKeys()
         {
             AvailableKeys.Clear();
-            var keys = new[]
+
+            if (SelectedTemplateType == TemplateType.Group)
             {
-                "[ФИО]", "[Возраст]", "[Группа]", "[Специальность]",
-                "[СреднийБалл]", "[Пропуски]", "[ДатаРождения]"
-            };
-            foreach (var key in keys)
-                AvailableKeys.Add(key);
+                // Ключи только для групповых отчетов
+                var groupKeys = new[]
+                {
+            "[Группа]", "[СреднийБалл]", "[Пропуски]", "[Дата]", "[Время]", "[Специальность]"
+        };
+                foreach (var key in groupKeys)
+                    AvailableKeys.Add(key);
+            }
+            else
+            {
+                // Ключи для индивидуальных отчетов
+                var individualKeys = new[]
+                {
+            "[ФИО]", "[Возраст]", "[Группа]", "[Специальность]",
+            "[СреднийБалл]", "[Пропуски]", "[ДатаРождения]"
+        };
+                foreach (var key in individualKeys)
+                    AvailableKeys.Add(key);
+            }
         }
 
         private void BrowseFile()

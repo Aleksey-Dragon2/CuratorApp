@@ -187,7 +187,8 @@ namespace CuratorApp.ViewModel
                 }
 
                 var keywords = await _templateRepo.GetKeywordsAsync(SelectedGroupTemplate.Id);
-                var values = new System.Collections.Generic.Dictionary<string, string>
+
+                var values = new Dictionary<string, string>
                 {
                     ["[Группа]"] = group.Name,
                     ["[СреднийБалл]"] = AverageGrade.ToString("0.00"),
@@ -197,6 +198,42 @@ namespace CuratorApp.ViewModel
                     ["[Специальность]"] = group.Specialization ?? ""
                 };
 
+                // Студенческие строки
+                var rows = Records
+                    .GroupBy(r => r.Student.Id)
+                    .Select(g =>
+                    {
+                        var student = g.First().Student;
+                        var rowDict = new Dictionary<string, string>();
+
+                        foreach (var keyword in keywords)
+                        {
+                            switch (keyword.Placeholder)
+                            {
+                                case "[ФИО]":
+                                    rowDict[keyword.Placeholder] = $"{student.LastName} {student.FirstName}";
+                                    break;
+                                case "[Оценка]":
+                                    rowDict[keyword.Placeholder] = string.Join(", ",
+                                        g.Select(r => r.FinalGrade?.ToString("0.0") ?? "-"));
+                                    break;
+                                case "[Предмет]":
+                                    rowDict[keyword.Placeholder] = string.Join(", ",
+                                        g.Select(r => r.Subject.Name));
+                                    break;
+                                case "[Пропуски]":
+                                    rowDict[keyword.Placeholder] = g.Sum(r => r.AbsenceCount).ToString();
+                                    break;
+                                default:
+                                    rowDict[keyword.Placeholder] = "-";
+                                    break;
+                            }
+                        }
+
+                        return rowDict;
+                    })
+                    .ToList();
+
                 var processor = new TemplateProcessor();
                 var fileName = $"{SelectedGroupTemplate.Name}_{DateTime.Now:dd-MM-yyyy_HH-mm}.docx";
 
@@ -204,7 +241,9 @@ namespace CuratorApp.ViewModel
                     SelectedGroupTemplate.TemplatePath,
                     values,
                     fileName,
-                    group.Name
+                    group.Name,
+                    null,
+                    rows
                 );
 
                 MessageBox.Show($"Отчёт сгенерирован:\n{output}");
@@ -214,6 +253,7 @@ namespace CuratorApp.ViewModel
                 MessageBox.Show($"Ошибка генерации отчёта:\n{ex.Message}");
             }
         }
+
 
         private void AddRecord()
         {

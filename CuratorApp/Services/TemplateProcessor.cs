@@ -9,32 +9,30 @@ namespace CuratorApp.Services
 {
     public class TemplateProcessor
     {
-        public string GenerateReport(string templatePath, Dictionary<string, string> replacements, string outputFileName, string groupName, string? studentFolder = null)
+        public string GenerateReport(
+            string templatePath,
+            Dictionary<string, string> replacements,
+            string outputFileName,
+            string groupName,
+            string? studentFolder = null,
+            List<Dictionary<string, string>>? tableRows = null)
         {
             string fullTemplatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, templatePath);
 
             if (!File.Exists(fullTemplatePath))
                 throw new FileNotFoundException("Шаблон не найден", fullTemplatePath);
 
-            // Базовая директория отчётов
             string baseReportsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-
-            // Директория группы — по названию группы
             string groupDir = Path.Combine(baseReportsDir, groupName);
-
-            // Если студент указан — папка внутри группы
             string finalDir = studentFolder != null
                 ? Path.Combine(groupDir, studentFolder)
                 : groupDir;
 
             Directory.CreateDirectory(finalDir);
-
             string outputPath = Path.Combine(finalDir, outputFileName);
 
-            // Копируем шаблон в новый файл
             File.Copy(fullTemplatePath, outputPath, true);
 
-            // Открываем и заменяем ключи
             using var wordDoc = WordprocessingDocument.Open(outputPath, true);
             var body = wordDoc.MainDocumentPart?.Document.Body;
 
@@ -43,6 +41,11 @@ namespace CuratorApp.Services
                 foreach (var pair in replacements)
                 {
                     ReplacePlaceholder(body, pair.Key, pair.Value);
+                }
+
+                if (tableRows != null && tableRows.Count > 0)
+                {
+                    ReplaceTableRows(body, tableRows);
                 }
 
                 wordDoc.MainDocumentPart.Document.Save();
@@ -71,13 +74,47 @@ namespace CuratorApp.Services
                 if (accum == placeholder)
                 {
                     allTexts[i].Text.Text = replacement;
-
                     for (int k = i + 1; k < j; k++)
-                    {
                         allTexts[k].Text.Text = "";
-                    }
                 }
             }
+        }
+
+        private void ReplaceTableRows(Body body, List<Dictionary<string, string>> tableRows)
+        {
+            var table = body.Elements<Table>()
+                .FirstOrDefault(t => t.InnerText.Contains("[ФИО]")); // Найти таблицу с шаблонными ключами
+
+            if (table == null)
+                return;
+
+            var templateRow = table.Elements<TableRow>()
+                .FirstOrDefault(r => r.InnerText.Contains("[ФИО]")); // Строка-шаблон
+
+            if (templateRow == null)
+                return;
+
+            var parentTable = templateRow.Parent;
+            foreach (var rowData in tableRows)
+            {
+                var newRow = (TableRow)templateRow.CloneNode(true);
+                foreach (var cell in newRow.Elements<TableCell>())
+                {
+                    foreach (var text in cell.Descendants<Text>())
+                    {
+                        string original = text.Text;
+                        foreach (var pair in rowData)
+                        {
+                            if (original.Contains(pair.Key))
+                                text.Text = original.Replace(pair.Key, pair.Value);
+                        }
+                    }
+                }
+
+                table.AppendChild(newRow);
+            }
+
+            table.RemoveChild(templateRow); // Удаляем строку-шаблон
         }
     }
 }
