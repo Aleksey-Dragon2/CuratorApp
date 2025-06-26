@@ -9,5 +9,8 @@ namespace CuratorApp.Repositories
         Task<IEnumerable<Subject>> GetAllAsync();
         Task<Subject?> GetByIdAsync(int id);
         Task<IEnumerable<Subject>> GetByGroupIdAsync(int groupId);
+        Task AddAsync(Subject subject);
+        Task UpdateAsync(Subject subject);
+        Task DeleteAsync(int id);
     }
 }

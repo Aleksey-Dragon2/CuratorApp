@@ -20,6 +20,8 @@ namespace CuratorApp.ViewModels
 
         public ObservableCollection<Group> Groups { get; set; } = new();
         public ICommand OpenTemplatesCommand { get; }
+        public ICommand OpenSubjectsCommand { get; }
+
 
         private Group? _selectedGroup;
         public Group? SelectedGroup
@@ -84,6 +86,8 @@ namespace CuratorApp.ViewModels
             OpenStudentsCommand = new RelayCommand(_ => OpenStudents());
             OpenPerformanceCommand = new RelayCommand(_ => OpenPerformance());
             OpenTemplatesCommand = new RelayCommand(_ => OpenTemplates());
+            OpenSubjectsCommand = new RelayCommand(_ => OpenSubjects());
+
             LoadGroups();
         }
 
@@ -186,6 +190,30 @@ namespace CuratorApp.ViewModels
             };
 
             templatesWindow.ShowDialog();
+        }
+        private void OpenSubjects()
+        {
+            var subjectRepo = new SubjectRepository(new ApplicationContext());
+            var vm = new SubjectListViewModel(subjectRepo);
+
+            var mainWindow = Application.Current.Windows
+                .OfType<MainWindow>()
+                .FirstOrDefault(w => w.DataContext == this);
+
+            mainWindow?.Hide();
+
+            var subjectWindow = new SubjectListWindow
+            {
+                DataContext = vm
+            };
+
+            subjectWindow.Closed += (s, e) =>
+            {
+                mainWindow?.Show();
+                subjectWindow.Closed -= (s, e) => mainWindow?.Show();
+            };
+
+            subjectWindow.ShowDialog();
         }
 
 

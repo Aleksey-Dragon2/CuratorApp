@@ -38,5 +38,33 @@ namespace CuratorApp.Repositories
                 .OrderBy(s => s.Name)
                 .ToListAsync();
         }
+
+        public async Task AddAsync(Subject subject)
+        {
+            _context.Subjects.Add(subject);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(Subject subject)
+        {
+            var existing = await _context.Subjects.FindAsync(subject.Id);
+            if (existing == null)
+                throw new Exception("Предмет не найден");
+
+            existing.Name = subject.Name;
+            existing.CourseNumber = subject.CourseNumber;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var subject = await _context.Subjects.FindAsync(id);
+            if (subject == null)
+                return;
+
+            _context.Subjects.Remove(subject);
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -23,6 +23,12 @@
     <Compile Update="Views\StudentsWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\SubjectEditWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\SubjectListWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\TemplateEditWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
